@@ -1,29 +1,41 @@
-name: Build libndk_fixer
 on:
   push:
-    branches: ["master"]
+    branches:
+      - master
   workflow_dispatch:
 
 jobs:
   build:
+    name: Build libndk_fixer
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
-          submodules: true
-      - name: install cmake
-        run: |
-          sudo apt update -qq
-          sudo apt install -y cmake
-      - uses: nttld/setup-ndk@v1
+          submodules: recursive
+
+      - name: Set up Android NDK
         id: setup-ndk
+        uses: nttld/setup-ndk@v1
         with:
           ndk-version: r25c
           add-to-path: false
-      - run: ./build.sh
+
+      - name: Build
+        run: bash ./build.sh
         env:
-          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }} 
-      - uses: actions/upload-artifact@v4
+          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+          ANDROID_NDK_ROOT: ${{ steps.setup-ndk.outputs.ndk-path }}
+
+      - name: Verify build output
+        run: |
+          test -f build/libndk_fixer.so
+          ls -lh build/libndk_fixer.so
+
+      - name: Upload library
+        uses: actions/upload-artifact@v4
         with:
-          name: lib
+          name: libndk_fixer
           path: build/libndk_fixer.so
+          if-no-files-found: error
